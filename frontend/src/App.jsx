@@ -6,7 +6,11 @@ import MoodMetrics from "./components/MoodMetrics";
 import PriceChart from "./components/PriceChart";
 import PostsFeed from "./components/PostsFeed";
 
-const API_BASE = "http://127.0.0.1:8000/api";
+// In production, the frontend is served by the same FastAPI server — use relative URLs.
+// In development (Vite dev server on :5173), point to the local backend on :8000.
+const API_BASE = import.meta.env.DEV
+  ? "http://127.0.0.1:8000/api"
+  : "/api";
 
 export default function App() {
   const [data, setData] = useState(null);

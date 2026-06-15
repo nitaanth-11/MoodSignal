@@ -1,0 +1,34 @@
+# ============================================================
+# Render Blueprint — Infrastructure as Code
+# Deploy with: render.yaml in repo root → Render Dashboard
+# ============================================================
+
+services:
+  # ---- Backend API + Static Frontend ----
+  - type: web
+    name: moodsignal
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt &&
+      cd frontend && npm ci && npm run build && cd ..
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: NODE_VERSION
+        value: "20"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: RENDER
+        value: "true"
+      # Reddit API (optional — set in Render Dashboard)
+      - key: REDDIT_CLIENT_ID
+        sync: false
+      - key: REDDIT_CLIENT_SECRET
+        sync: false
+      - key: REDDIT_USER_AGENT
+        value: "MoodSignal/1.0"
+    healthCheckPath: /api/status
+    autoDeploy: true

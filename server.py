@@ -9,6 +9,8 @@ from typing import Dict, Any, Optional
 import pandas as pd
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 # Ensure project root is in path
@@ -23,12 +25,31 @@ logger = logging.getLogger("moodsignal-server")
 # Force UTF-8 encoding on stdout for Windows subprocesses
 os.environ["PYTHONIOENCODING"] = "utf-8"
 
-app = FastAPI(title="MoodSignal API", description="API server for MoodSignal Sentiment & Market Predictor")
+# Detect production mode
+IS_PRODUCTION = os.environ.get("RENDER") == "true" or os.environ.get("PRODUCTION") == "true"
+
+app = FastAPI(
+    title="MoodSignal API",
+    description="API server for MoodSignal Sentiment & Market Predictor",
+    docs_url="/api/docs" if not IS_PRODUCTION else None,
+    redoc_url="/api/redoc" if not IS_PRODUCTION else None,
+)
 
 # Setup CORS middleware
+allowed_origins = [
+    "http://localhost:5173",   # Vite dev server
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+# In production, also allow the Render deploy URL
+render_url = os.environ.get("RENDER_EXTERNAL_URL")
+if render_url:
+    allowed_origins.append(render_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins (Vite dev server)
+    allow_origins=["*"] if not IS_PRODUCTION else allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -215,6 +236,35 @@ def get_dashboard_data():
     }
 
 
+# ── Production: Serve built React frontend ──────────────────────────────────
+FRONTEND_DIST = Path(__file__).resolve().parent / "frontend" / "dist"
+
+if FRONTEND_DIST.exists() and FRONTEND_DIST.is_dir():
+    # Serve static assets (JS, CSS, images) under /assets
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="static-assets")
+
+    # Serve any other static files at root level (favicon, manifest, etc.)
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        """SPA fallback: serve index.html for all non-API routes."""
+        # Try to serve the exact file first
+        file_path = FRONTEND_DIST / full_path
+        if full_path and file_path.exists() and file_path.is_file():
+            return FileResponse(file_path)
+        # Fallback to index.html for client-side routing
+        return FileResponse(FRONTEND_DIST / "index.html")
+    
+    logger.info(f"Serving React frontend from {FRONTEND_DIST}")
+else:
+    logger.info("Frontend dist not found — API-only mode (run 'cd frontend && npm run build' to enable)")
+
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("server:app", host="127.0.0.1", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(
+        "server:app",
+        host="0.0.0.0" if IS_PRODUCTION else "127.0.0.1",
+        port=port,
+        reload=not IS_PRODUCTION,
+    )

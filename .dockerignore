@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Dev files
+*.md
+MoodSignal_Colab.ipynb
+.env
+.env.example
+
+# Runtime data (built fresh on deploy)
+data/
+models/
+
+# OS
+.DS_Store
+Thumbs.db
