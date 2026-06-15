@@ -1,4 +1,4 @@
-# ============================================================
+ git commit -m "Fix: remove .env.example COPY from Dockerfile"# ============================================================
 # MoodSignal — Production Dockerfile
 # Multi-stage build: Node (frontend) → Python (backend + serve)
 # ============================================================
