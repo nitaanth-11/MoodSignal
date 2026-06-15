@@ -33,8 +33,6 @@ COPY sentiment/ ./sentiment/
 COPY mood/ ./mood/
 COPY market/ ./market/
 COPY model/ ./model/
-COPY .env.example ./.env.example
-
 # Copy built frontend from Stage 1
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
